@@ -374,18 +374,28 @@ chrome.alarms.onAlarm.addListener(alarm => {
   });
 }
 /* inject to existing tabs */
-starters.push(() => chrome.app && query({
-  url: '*://*/*',
-  discarded: false
-}).then(tbs => {
-  const contentScripts = chrome.app.getDetails().content_scripts;
-  for (const tab of tbs) {
-    for (const cs of contentScripts) {
-      chrome.tabs.executeScript(tab.id, {
-        file: cs.js[0],
-        runAt: cs.run_at,
-        allFrames: cs.all_frames
-      }, () => chrome.runtime.lastError);
-    }
+starters.push(() => {
+  const manifest = chrome.runtime.getManifest();
+  const contentScripts = manifest.content_scripts || [];
+  if (contentScripts.length === 0) {
+    return;
   }
-}));
+  query({
+    url: '*://*/*',
+    discarded: false
+  }).then(tbs => {
+    for (const tab of tbs) {
+      for (const cs of contentScripts) {
+        const [file] = cs.js || [];
+        if (!file) {
+          continue;
+        }
+        chrome.tabs.executeScript(tab.id, {
+          file,
+          runAt: cs.run_at,
+          allFrames: cs.all_frames
+        }, () => chrome.runtime.lastError);
+      }
+    }
+  });
+});

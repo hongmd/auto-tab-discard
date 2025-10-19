@@ -7,6 +7,7 @@ const isEdge = /Edg\//.test(navigator.userAgent);
 [...document.querySelectorAll('[data-i18n]')].forEach(e => {
   e[e.dataset.i18nValue || 'textContent'] = chrome.i18n.getMessage(e.dataset.i18n);
 });
+document.title = chrome.runtime.getManifest().name + ' Options';
 
 // memory
 if (!window.performance || !window.performance.memory) {
@@ -225,9 +226,20 @@ document.getElementById('save').addEventListener('click', () => {
   });
 });
 
-document.getElementById('support').addEventListener('click', () => chrome.tabs.create({
-  url: chrome.runtime.getManifest().homepage_url + '?rd=donate'
-}));
+{
+  const support = document.getElementById('support');
+  const homepage = chrome.runtime.getManifest().homepage_url;
+  if (support) {
+    if (homepage) {
+      support.addEventListener('click', () => chrome.tabs.create({
+        url: homepage + '?rd=donate'
+      }));
+    }
+    else {
+      support.closest('td') ? support.closest('td').remove() : support.remove();
+    }
+  }
+}
 
 document.addEventListener('DOMContentLoaded', restore);
 
@@ -262,18 +274,12 @@ document.getElementById('reset').addEventListener('click', e => {
   }
 });
 // rate
-document.querySelector('#rate input').onclick = () => {
-  let url = 'https://chrome.google.com/webstore/detail/auto-tab-discard/jhnleheckmknfcgijgkadoemagpecfol/reviews';
-  if (isFirefox) {
-    url = 'https://addons.mozilla.org/firefox/addon/auto-tab-discard/reviews/';
+{
+  const rate = document.getElementById('rate');
+  if (rate) {
+    rate.remove();
   }
-  else if (isEdge) {
-    url = 'https://microsoftedge.microsoft.com/addons/detail/nfkkljlcjnkngcmdpcammanncbhkndfe';
-  }
-  chrome.tabs.create({
-    url
-  });
-};
+}
 
 // export
 document.getElementById('export').addEventListener('click', () => {

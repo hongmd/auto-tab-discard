@@ -1,10 +1,9 @@
 {
   "manifest_version": 2,
-  "version": "0.6.1",
+  "version": "0.6.2",
   "default_locale": "en",
   "name": "Auto Tab Discard (fork)",
   "description": "__MSG_app_description__",
-
   "icons": {
     "16": "data/icons/16.png",
     "18": "data/icons/18.png",
@@ -37,35 +36,44 @@
       "menu.js"
     ]
   },
-  "content_scripts": [{
-    "match_about_blank": true,
-    "matches": ["<all_urls>"],
-    "js": [
-      "data/inject/watch.js"
-    ],
-    "run_at": "document_start",
-    "all_frames": true
-  }],
+  "content_scripts": [
+    {
+      "match_about_blank": true,
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "data/inject/watch.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
   "browser_action": {
     "browser_style": true,
     "default_popup": "data/popup/index.html",
-    "theme_icons": [{
-      "light": "data/icons/light/16.png",
-      "dark": "data/icons/dark/16.png",
-      "size": 16
-    }, {
-      "light": "data/icons/light/32.png",
-      "dark": "data/icons/dark/32.png",
-      "size": 32
-    }, {
-      "light": "data/icons/light/48.png",
-      "dark": "data/icons/dark/48.png",
-      "size": 48
-    }, {
-      "light": "data/icons/light/64.png",
-      "dark": "data/icons/dark/64.png",
-      "size": 64
-    }]
+    "theme_icons": [
+      {
+        "light": "data/icons/light/16.png",
+        "dark": "data/icons/dark/16.png",
+        "size": 16
+      },
+      {
+        "light": "data/icons/light/32.png",
+        "dark": "data/icons/dark/32.png",
+        "size": 32
+      },
+      {
+        "light": "data/icons/light/48.png",
+        "dark": "data/icons/dark/48.png",
+        "size": 48
+      },
+      {
+        "light": "data/icons/light/64.png",
+        "dark": "data/icons/dark/64.png",
+        "size": 64
+      }
+    ]
   },
   "options_ui": {
     "page": "data/options/index.html",
@@ -96,6 +104,15 @@
     },
     "close": {
       "description": "__MSG_cmd_close__"
+    }
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "autotabdiscardfork@example.com",
+      "strict_min_version": "115.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
     }
   }
 }

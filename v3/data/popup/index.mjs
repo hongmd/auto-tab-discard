@@ -7,6 +7,12 @@ import {match} from '../../worker/core/utils.mjs';
     e.title = chrome.i18n.getMessage(e.dataset.i18nTitle);
   }
 });
+{
+  const header = document.querySelector('header');
+  if (header) {
+    header.textContent = chrome.runtime.getManifest().name;
+  }
+}
 
 let tab;
 

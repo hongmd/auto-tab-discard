@@ -375,23 +375,32 @@ chrome.idle.onStateChanged.addListener(state => {
 }
 
 /* inject to existing tabs */
-starters.push(() => chrome.app && query({
-  url: '*://*/*',
-  discarded: false
-}).then(tbs => {
-  const contentScripts = chrome.app.getDetails().content_scripts;
-  for (const tab of tbs) {
-    for (const cs of contentScripts) {
-      chrome.scripting.executeScript({
-        target: {
-          tabId: tab.id,
-          allFrames: cs.all_frames
-        },
-        files: cs.js
-      }).catch(() => {});
-    }
+starters.push(() => {
+  const manifest = chrome.runtime.getManifest();
+  const contentScripts = manifest.content_scripts || [];
+  if (contentScripts.length === 0) {
+    return;
   }
-}));
+  query({
+    url: '*://*/*',
+    discarded: false
+  }).then(tbs => {
+    for (const tab of tbs) {
+      for (const cs of contentScripts) {
+        if (!cs.js || cs.js.length === 0) {
+          continue;
+        }
+        chrome.scripting.executeScript({
+          target: {
+            tabId: tab.id,
+            allFrames: cs.all_frames
+          },
+          files: cs.js
+        }).catch(() => {});
+      }
+    }
+  });
+});
 
 /* temporarily disable auto discarding */
 {
