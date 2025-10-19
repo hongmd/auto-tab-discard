@@ -46,6 +46,7 @@ const matchesRule = (href, hostname, compiled) => {
 };
 
 const META_TTL = 30 * 1000;
+const META_MAX_SIZE = 500;
 const metaCache = new Map();
 const cloneMeta = ms => ms ? ms.map(o => o) : ms;
 const rememberMeta = (id, ms) => {
@@ -54,6 +55,21 @@ const rememberMeta = (id, ms) => {
     time: Date.now()
   });
 };
+const pruneMetaCache = () => {
+  const now = Date.now();
+  for (const [id, entry] of metaCache) {
+    if (now - entry.time > META_TTL) {
+      metaCache.delete(id);
+    }
+  }
+  if (metaCache.size > META_MAX_SIZE) {
+    const entries = [...metaCache.entries()].sort((a, b) => a[1].time - b[1].time);
+    for (let i = 0; i < metaCache.size - META_MAX_SIZE; i += 1) {
+      metaCache.delete(entries[i][0]);
+    }
+  }
+};
+setInterval(pruneMetaCache, META_TTL);
 chrome.tabs.onRemoved.addListener(id => metaCache.delete(id));
 chrome.tabs.onUpdated.addListener((id, info) => {
   if (info && (info.status || info.url || info.audible !== undefined)) {
@@ -78,11 +94,6 @@ number.remove = () => {
 number.cache = {
   prefs: null,
   resolvedAt: 0
-};
-
-number.invalidateCache = () => {
-  number.cache.prefs = null;
-  number.cache.resolvedAt = 0;
 };
 
 number.check = async (filterTabsFrom, ops = {}) => {
