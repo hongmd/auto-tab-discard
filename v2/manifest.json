@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "version": "0.5.0",
   "default_locale": "en",
-  "name": "Auto Tab Discard",
+  "name": "Auto Tab Discard (fork)",
   "description": "__MSG_app_description__",
 
   "icons": {
@@ -16,9 +16,6 @@
     "64": "data/icons/64.png",
     "128": "data/icons/128.png",
     "256": "data/icons/256.png"
-  },
-  "storage": {
-    "managed_schema": "schema.json"
   },
   "permissions": [
     "idle",
@@ -75,7 +72,6 @@
     "chrome_style": true,
     "open_in_tab": true
   },
-  "homepage_url": "https://add0n.com/tab-discard.html",
   "commands": {
     "discard-tab": {
       "description": "__MSG_cmd_discard_tab__"

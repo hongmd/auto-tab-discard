@@ -225,9 +225,20 @@ document.getElementById('save').addEventListener('click', () => {
   });
 });
 
-document.getElementById('support').addEventListener('click', () => chrome.tabs.create({
-  url: chrome.runtime.getManifest().homepage_url + '?rd=donate'
-}));
+{
+  const support = document.getElementById('support');
+  const homepage = chrome.runtime.getManifest().homepage_url;
+  if (support) {
+    if (homepage) {
+      support.addEventListener('click', () => chrome.tabs.create({
+        url: homepage + '?rd=donate'
+      }));
+    }
+    else {
+      support.remove();
+    }
+  }
+}
 
 document.addEventListener('DOMContentLoaded', restore);
 

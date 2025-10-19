@@ -58,16 +58,18 @@ chrome.alarms.onAlarm.addListener(alarm => {
         if (list.length === 0) {
           return prefs['trash.period'] * 60 * 60;
         }
-        return list.map(item => item.match(/^(?:(\w+):)?([^@]+)(?:@(\d+\w*))?/)).map(
-          ([rule, exprtype, expr, interval]) => {
+        return list
+          .map(item => item.match(/^(?:(\w+):)?([^@]+)(?:@(\d+\w*))?/))
+          .filter(Boolean)
+          .map(([, exprtype, expr, interval]) => {
             if (
               (exprtype === undefined && hostname.indexOf(expr) !== -1) ||
               (exprtype === 're' && (new RegExp(expr)).test(href))
             ) {
               return parseInterval(interval) || prefs['trash.period'] * 60 * 60;
             }
-          }
-        ).find(interval => interval > 0);
+          })
+          .find(interval => interval > 0);
       };
 
       const keys = (

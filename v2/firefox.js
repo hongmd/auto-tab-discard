@@ -28,21 +28,70 @@ if (isFirefox) {
     }]);
   };
   const update = chrome.tabs.update;
-  chrome.tabs.update = function(tabId, updateProperties, callback = () => {}) {
-    const b = 'autoDiscardable' in updateProperties;
-    const v = updateProperties.autoDiscardable;
-    delete updateProperties.autoDiscardable;
-    const next = () => {
-      if (b) {
-        cache[tabId] = v;
+  chrome.tabs.update = function(tabId, updateProperties, callback) {
+    let targetId = tabId;
+    let props = updateProperties;
+    let cb = callback;
+
+    if (typeof targetId === 'object' || targetId === undefined) {
+      cb = props;
+      props = targetId || {};
+      targetId = undefined;
+    }
+
+    if (typeof cb !== 'function') {
+      cb = () => {};
+    }
+    props = props || {};
+
+    const hasAutoDiscardable = Object.prototype.hasOwnProperty.call(props, 'autoDiscardable');
+    const autoDiscardable = props.autoDiscardable;
+    if (hasAutoDiscardable) {
+      delete props.autoDiscardable;
+    }
+
+    const assignCache = tab => {
+      if (hasAutoDiscardable && tab && typeof tab.id === 'number') {
+        cache[tab.id] = autoDiscardable;
       }
-      callback();
     };
-    if (Object.keys(updateProperties).length) {
-      update.apply(this, [tabId, updateProperties, next]);
+
+    if (targetId === undefined) {
+      const wrapped = tab => {
+        assignCache(tab);
+        cb(tab);
+      };
+
+      if (Object.keys(props).length) {
+        update.call(this, props, wrapped);
+      }
+      else if (hasAutoDiscardable) {
+        chrome.tabs.query({
+          active: true,
+          currentWindow: true
+        }, tabs => {
+          const tab = tabs && tabs[0];
+          assignCache(tab);
+          cb(tab);
+        });
+      }
+      else {
+        update.call(this, props, wrapped);
+      }
     }
     else {
-      next();
+      const next = () => {
+        if (hasAutoDiscardable) {
+          cache[targetId] = autoDiscardable;
+        }
+        cb();
+      };
+      if (Object.keys(props).length) {
+        update.apply(this, [targetId, props, next]);
+      }
+      else {
+        next();
+      }
     }
   };
   chrome.tabs.onRemoved.addListener(tabId => delete cache[tabId]);

@@ -13,6 +13,38 @@ const number = {
 };
 const pluginFilters = {}; // this object adds custom filters to the number-based discarding
 
+const compileRules = list => {
+  const hosts = new Set();
+  const regexes = [];
+  for (const rawRule of list || []) {
+    const rule = typeof rawRule === 'string' ? rawRule.trim() : '';
+    if (!rule) {
+      continue;
+    }
+    if (rule.startsWith('re:')) {
+      const pattern = rule.substr(3);
+      try {
+        regexes.push(new RegExp(pattern));
+      }
+      catch (e) {}
+    }
+    else {
+      hosts.add(rule);
+    }
+  }
+  return {hosts, regexes};
+};
+
+const matchesRule = (href, hostname, compiled) => {
+  if (!compiled) {
+    return false;
+  }
+  if (compiled.hosts.has(hostname)) {
+    return true;
+  }
+  return compiled.regexes.some(re => re.test(href));
+};
+
 number.install = period => {
   // checking period is between 1 minute to 20 minutes
   period = Math.min(20 * 60, Math.max(60, period / 3));
@@ -27,6 +59,16 @@ number.remove = () => {
 };
 // filterTabsFrom is a list of tab that if provided, discarding only happens on them
 // ops is the preference object overwrite
+number.cache = {
+  prefs: null,
+  resolvedAt: 0
+};
+
+number.invalidateCache = () => {
+  number.cache.prefs = null;
+  number.cache.resolvedAt = 0;
+};
+
 number.check = async (filterTabsFrom, ops = {}) => {
   if (typeof interrupts !== 'undefined') {
     // wait for plug-ins to be ready
@@ -37,25 +79,29 @@ number.check = async (filterTabsFrom, ops = {}) => {
   }
 
   log('number.check is called');
-  const prefs = await storage({
-    'mode': 'time-based',
-    'number': 6,
-    'max.single.discard': 50, // max number of tabs to discard
-    'period': 10 * 60, // in seconds
-    'audio': true, // audio = true => do not discard if audio is playing
-    'pinned': false, // pinned = true => do not discard if tab is pinned
-    'battery': false, // battery = true => only discard if power is disconnected
-    'online': false, // online = true => do not discard if there is no INTERNET connection
-    'form': true, // form = true => do not discard if form data is changed
-    'whitelist': [],
-    'whitelist.session': [],
-    'notification.permission': false,
-    'whitelist-url': [],
-    'memory-enabled': false,
-    'memory-value': 60,
-    'idle': false,
-    'idle-timeout': 5 * 60 // in seconds
-  });
+  if (!number.cache.prefs || Date.now() - number.cache.resolvedAt > 5 * 60 * 1000) {
+    number.cache.prefs = await storage({
+      'mode': 'time-based',
+      'number': 6,
+      'max.single.discard': 50, // max number of tabs to discard
+      'period': 10 * 60, // in seconds
+      'audio': true, // audio = true => do not discard if audio is playing
+      'pinned': false, // pinned = true => do not discard if tab is pinned
+      'battery': false, // battery = true => only discard if power is disconnected
+      'online': false, // online = true => do not discard if there is no INTERNET connection
+      'form': true, // form = true => do not discard if form data is changed
+      'whitelist': [],
+      'whitelist.session': [],
+      'notification.permission': false,
+      'whitelist-url': [],
+      'memory-enabled': false,
+      'memory-value': 60,
+      'idle': false,
+      'idle-timeout': 5 * 60 // in seconds
+    });
+    number.cache.resolvedAt = Date.now();
+  }
+  const prefs = Object.assign({}, number.cache.prefs);
   Object.assign(prefs, ops);
   // only check if idle
   if (prefs.idle) {
@@ -114,34 +160,21 @@ number.check = async (filterTabsFrom, ops = {}) => {
     prefs['whitelist.session'].length ||
     (prefs.mode === 'url-based' && prefs['whitelist-url'].length)
   ) {
-    const match = (href, hostname, list) => {
-      if (list.length === 0) {
-        return false;
-      }
-      if (list.filter(s => s.startsWith('re:') === false).indexOf(hostname) !== -1) {
-        return true;
-      }
-      if (list.filter(s => s.startsWith('re:') === true).map(s => s.substr(3)).some(s => {
-        try {
-          return (new RegExp(s)).test(href);
-        }
-        catch (e) {}
-      })) {
-        return true;
-      }
-    };
+    const permanentRules = compileRules(prefs['whitelist']);
+    const sessionRules = compileRules(prefs['whitelist.session']);
+    const urlRules = compileRules(prefs['whitelist-url']);
     tbs = tbs.filter(tb => {
       try {
         const {hostname} = new URL(tb.url);
 
-        const m = list => match(tb.url, hostname, list);
+        const matches = compiled => matchesRule(tb.url, hostname, compiled);
         // if we are on url-based mode, remove tabs that are not on the list (before fetching meta)
-        if (prefs.mode === 'url-based' && m(prefs['whitelist-url']) !== true) {
+        if (prefs.mode === 'url-based' && matches(urlRules) !== true) {
           icon(tb, 'tab is in the whitelist');
           return false;
         }
         // is the tab in whitelist, remove it (before fetching meta)
-        if (m(prefs['whitelist']) || m(prefs['whitelist.session'])) {
+        if (matches(permanentRules) || matches(sessionRules)) {
           icon(tb, 'tab is in either the session whitelist or permanent whitelist');
           return false;
         }
@@ -163,67 +196,74 @@ number.check = async (filterTabsFrom, ops = {}) => {
   const now = Date.now();
   const map = new Map();
   const arr = [];
-  for (const tb of tbs) {
-    const ms = (await new Promise(resolve => chrome.tabs.executeScript(tb.id, {
-      file: '/data/inject/meta.js',
-      runAt: 'document_start',
-      allFrames: true,
-      matchAboutBlank: true
-    }, r => {
-      chrome.runtime.lastError;
-      resolve(r);
-    })));
-    // remove protected tabs (e.g. addons.mozilla.org)
-    if (!ms) {
-      log('discarding aborted', 'metadata fetch error');
-      icon(tb, 'metadata fetch error');
-      continue;
-    }
-    const meta = Object.assign({}, ...ms);
-    log('number check', 'got meta data of tab');
-    meta.forms = ms.some(o => o.forms);
-    meta.audible = ms.some(o => o.audible);
+  const fetchMeta = tb => new Promise(resolve => chrome.tabs.executeScript(tb.id, {
+    file: '/data/inject/meta.js',
+    runAt: 'document_start',
+    allFrames: true,
+    matchAboutBlank: true
+  }, r => {
+    chrome.runtime.lastError;
+    resolve({tab: tb, ms: r});
+  }));
+  const chunkSize = Math.max(2, Math.min(10, Math.ceil(tbs.length / 10)));
+  let reachedLimit = false;
+  for (let i = 0; i < tbs.length && reachedLimit === false; i += chunkSize) {
+    const chunk = tbs.slice(i, i + chunkSize);
+    const results = await Promise.all(chunk.map(fetchMeta));
+    for (const {tab: tb, ms} of results) {
+      // remove protected tabs (e.g. addons.mozilla.org)
+      if (!ms) {
+        log('discarding aborted', 'metadata fetch error');
+        icon(tb, 'metadata fetch error');
+        continue;
+      }
+      const meta = Object.assign({}, ...ms);
+      log('number check', 'got meta data of tab');
+      meta.forms = ms.some(o => o.forms);
+      meta.audible = ms.some(o => o.audible);
 
-    // is the tab using too much memory, discard instantly
-    if (prefs['memory-enabled'] && meta.memory && meta.memory > prefs['memory-value'] * 1024 * 1024) {
-      log('forced discarding', 'memory usage');
-      discard(tb);
-      continue;
-    }
-    // check tab's age
-    if (now - meta.time < prefs.period * 1000) {
-      log('discarding aborted', 'tab is not old');
-      continue;
-    }
-    // is this tab loaded
-    if (meta.ready !== true) {
-      log('discarding aborted', 'tab is not ready');
-      continue;
-    }
-    // is tab playing audio
-    if (prefs.audio && meta.audible) {
-      log('discarding aborted', 'audio is playing');
-      icon(tb, 'tab plays an audio');
-      continue;
-    }
-    // is there an unsaved form
-    if (prefs.form && meta.forms) {
-      log('discarding aborted', 'active form');
-      icon(tb, 'there is an active form on this tab');
-      continue;
-    }
-    // is notification allowed
-    if (prefs['notification.permission'] && meta.permission) {
-      log('discarding aborted', 'tab has notification permission');
-      icon(tb, 'tab has notification permission');
-      continue;
-    // tab can be discarded
-    }
-    map.set(tb, meta);
-    arr.push(tb);
-    if (arr.length > prefs['max.single.discard']) {
-      log('breaking', 'max number of tabs reached');
-      break;
+      // is the tab using too much memory, discard instantly
+      if (prefs['memory-enabled'] && meta.memory && meta.memory > prefs['memory-value'] * 1024 * 1024) {
+        log('forced discarding', 'memory usage');
+        discard(tb);
+        continue;
+      }
+      // check tab's age
+      if (now - meta.time < prefs.period * 1000) {
+        log('discarding aborted', 'tab is not old');
+        continue;
+      }
+      // is this tab loaded
+      if (meta.ready !== true) {
+        log('discarding aborted', 'tab is not ready');
+        continue;
+      }
+      // is tab playing audio
+      if (prefs.audio && meta.audible) {
+        log('discarding aborted', 'audio is playing');
+        icon(tb, 'tab plays an audio');
+        continue;
+      }
+      // is there an unsaved form
+      if (prefs.form && meta.forms) {
+        log('discarding aborted', 'active form');
+        icon(tb, 'there is an active form on this tab');
+        continue;
+      }
+      // is notification allowed
+      if (prefs['notification.permission'] && meta.permission) {
+        log('discarding aborted', 'tab has notification permission');
+        icon(tb, 'tab has notification permission');
+        continue;
+      }
+      // tab can be discarded
+      map.set(tb, meta);
+      arr.push(tb);
+      if (arr.length > prefs['max.single.discard']) {
+        log('breaking', 'max number of tabs reached');
+        reachedLimit = true;
+        break;
+      }
     }
   }
   // ready to discard
@@ -262,6 +302,25 @@ chrome.alarms.onAlarm.addListener(alarm => {
   chrome.storage.onChanged.addListener(ps => {
     if (ps.period || ps.mode) {
       check();
+    }
+    else if (
+      ps['whitelist'] ||
+      ps['whitelist.session'] ||
+      ps['whitelist-url'] ||
+      ps['memory-enabled'] ||
+      ps['memory-value'] ||
+      ps['max.single.discard'] ||
+      ps['number'] ||
+      ps['audio'] ||
+      ps['pinned'] ||
+      ps['form'] ||
+      ps['battery'] ||
+      ps['online'] ||
+      ps['notification.permission'] ||
+      ps['idle'] ||
+      ps['idle-timeout']
+    ) {
+      number.invalidateCache();
     }
   });
 }

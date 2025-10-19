@@ -118,6 +118,10 @@
     root.appendChild(span);
 
     const {homepage_url} = chrome.runtime.getManifest();
+    if (!homepage_url) {
+      root.remove();
+      return;
+    }
     const origin = homepage_url.split('/').slice(0, -1).join('/');
     const colors = shuffle(
       ['524c84', '606470', '755da3', 'c06c84', '393e46', '446e5c', '693e52', '1d566e', '693e52', 'd95858', 'f27370']
