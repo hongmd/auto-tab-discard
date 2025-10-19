@@ -45,6 +45,22 @@ const matchesRule = (href, hostname, compiled) => {
   return compiled.regexes.some(re => re.test(href));
 };
 
+const META_TTL = 30 * 1000;
+const metaCache = new Map();
+const cloneMeta = ms => ms ? ms.map(o => o) : ms;
+const rememberMeta = (id, ms) => {
+  metaCache.set(id, {
+    ms: cloneMeta(ms),
+    time: Date.now()
+  });
+};
+chrome.tabs.onRemoved.addListener(id => metaCache.delete(id));
+chrome.tabs.onUpdated.addListener((id, info) => {
+  if (info && (info.status || info.url || info.audible !== undefined)) {
+    metaCache.delete(id);
+  }
+});
+
 number.install = period => {
   // checking period is between 1 minute to 20 minutes
   period = Math.min(20 * 60, Math.max(60, period / 3));
@@ -196,15 +212,24 @@ number.check = async (filterTabsFrom, ops = {}) => {
   const now = Date.now();
   const map = new Map();
   const arr = [];
-  const fetchMeta = tb => new Promise(resolve => chrome.tabs.executeScript(tb.id, {
-    file: '/data/inject/meta.js',
-    runAt: 'document_start',
-    allFrames: true,
-    matchAboutBlank: true
-  }, r => {
-    chrome.runtime.lastError;
-    resolve({tab: tb, ms: r});
-  }));
+  const fetchMeta = tb => {
+    const cached = metaCache.get(tb.id);
+    if (cached && Date.now() - cached.time < META_TTL) {
+      return Promise.resolve({tab: tb, ms: cloneMeta(cached.ms)});
+    }
+    return new Promise(resolve => chrome.tabs.executeScript(tb.id, {
+      file: '/data/inject/meta.js',
+      runAt: 'document_start',
+      allFrames: true,
+      matchAboutBlank: true
+    }, r => {
+      chrome.runtime.lastError;
+      if (r) {
+        rememberMeta(tb.id, r);
+      }
+      resolve({tab: tb, ms: r});
+    }));
+  };
   const chunkSize = Math.max(2, Math.min(10, Math.ceil(tbs.length / 10)));
   let reachedLimit = false;
   for (let i = 0; i < tbs.length && reachedLimit === false; i += chunkSize) {
@@ -300,27 +325,40 @@ chrome.alarms.onAlarm.addListener(alarm => {
   });
   starters.push(check);
   chrome.storage.onChanged.addListener(ps => {
+    const updateCached = key => {
+      if (number.cache.prefs && ps[key] && 'newValue' in ps[key]) {
+        number.cache.prefs[key] = ps[key].newValue;
+        number.cache.resolvedAt = Date.now();
+      }
+    };
     if (ps.period || ps.mode) {
       check();
     }
-    else if (
-      ps['whitelist'] ||
-      ps['whitelist.session'] ||
-      ps['whitelist-url'] ||
-      ps['memory-enabled'] ||
-      ps['memory-value'] ||
-      ps['max.single.discard'] ||
-      ps['number'] ||
-      ps['audio'] ||
-      ps['pinned'] ||
-      ps['form'] ||
-      ps['battery'] ||
-      ps['online'] ||
-      ps['notification.permission'] ||
-      ps['idle'] ||
-      ps['idle-timeout']
-    ) {
-      number.invalidateCache();
+    const keys = [
+      'mode',
+      'period',
+      'whitelist',
+      'whitelist.session',
+      'whitelist-url',
+      'memory-enabled',
+      'memory-value',
+      'max.single.discard',
+      'number',
+      'audio',
+      'pinned',
+      'form',
+      'battery',
+      'online',
+      'notification.permission',
+      'idle',
+      'idle-timeout'
+    ];
+    let updated = false;
+    for (const key of keys) {
+      if (ps[key]) {
+        updateCached(key);
+        updated = true;
+      }
     }
   });
 }

@@ -150,19 +150,35 @@ const discard = tab => {
     discard.tabs.push(tab);
     return;
   }
+  const finalize = resolve => () => {
+    discard.count -= 1;
+    if (discard.tabs.length) {
+      const tab = discard.tabs.shift();
+      inprogress.delete(tab.id);
+      discard(tab);
+    }
+    resolve();
+  };
+
+  const runDiscard = resolve => {
+    discard.perform(tab);
+    finalize(resolve)();
+  };
+
+  if (updateFavicon === false && prependTitle === false) {
+    return new Promise(resolve => {
+      discard.count += 1;
+      discard.time = Date.now();
+      runDiscard(resolve);
+    });
+  }
+
   return new Promise(resolve => {
     discard.count += 1;
     discard.time = Date.now();
     const next = () => {
       discard.perform(tab);
-
-      discard.count -= 1;
-      if (discard.tabs.length) {
-        const tab = discard.tabs.shift();
-        inprogress.delete(tab.id);
-        discard(tab);
-      }
-      resolve();
+      finalize(resolve)();
     };
     // favicon
     const icon = () => {
