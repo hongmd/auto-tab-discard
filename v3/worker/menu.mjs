@@ -318,9 +318,31 @@ import {interrupts} from './plugins/loader.mjs';
     }
   };
   chrome.contextMenus.onClicked.addListener(onClicked);
-  chrome.action.onClicked.addListener(tab => onClicked({
-    menuItemId: localStorage.getItem('click')
-  }, tab));
+
+  const getActionCommand = () => {
+    let command;
+    try {
+      command = typeof localStorage !== 'undefined' ? localStorage.getItem('click') : null;
+    }
+    catch (e) {
+      command = null;
+    }
+    if (!command) {
+      const pref = prefs.click || '';
+      if (pref.startsWith('click.')) {
+        command = pref.substring(6);
+      }
+    }
+    return command;
+  };
+
+  chrome.action.onClicked.addListener(tab => {
+    const menuItemId = getActionCommand();
+    if (!menuItemId || menuItemId === 'popup') {
+      return;
+    }
+    onClicked({menuItemId}, tab);
+  });
   // commands
   chrome.commands.onCommand.addListener(async command => {
     if (command.startsWith('move-') || command === 'close') {

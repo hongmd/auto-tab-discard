@@ -81,6 +81,10 @@ const notify = e => chrome.notifications.create({ // eslint-disable-line no-unus
   message: e.message || e
 });
 
+chrome.browserAction.setBadgeBackgroundColor({
+  color: '#666'
+});
+
 const query = options => new Promise(resolve => chrome.tabs.query(options, resolve));
 
 const navigate = (method, discarded = false) => query({
@@ -258,11 +262,12 @@ const discard = tab => {
     };
     // change title
     if (prependTitle) {
+      const safePrefix = JSON.stringify(`${prependTitle} `);
       chrome.tabs.executeScript(tab.id, {
         runAt: 'document_start',
         code: `
             window.stop();
-            document.title = '${prependTitle.replace(/'/g, '_')} ' + (document.title || location.href);
+            document.title = ${safePrefix} + (document.title || location.href);
           `
       }, () => {
         chrome.runtime.lastError;
@@ -312,23 +317,6 @@ chrome.runtime.onMessageExternal.addListener((request, sender, resposne) => {
   }
 });
 
-const tabs = {};
-// number-based discarding
-
-tabs.mark = (tabId, autoDiscardable) => {
-  chrome.browserAction.setBadgeText({
-    tabId,
-    text: autoDiscardable ? '' : 'd'
-  });
-  chrome.browserAction.setTitle({
-    tabId,
-    title: autoDiscardable ? '' : chrome.i18n.getMessage('bg_msg_1')
-  });
-};
-chrome.browserAction.setBadgeBackgroundColor({
-  color: '#666'
-});
-
 chrome.runtime.onMessage.addListener((request, sender, resposne) => {
   log('onMessage request received', request);
   const {method} = request;
@@ -341,9 +329,6 @@ chrome.runtime.onMessage.addListener((request, sender, resposne) => {
       resposne((arr || []).some(a => a));
     });
     return true;
-  }
-  else if (method === 'tabs.check') {
-    tabs.check('tab.timeout');
   }
   else if (method === 'discard.on.load') { // for links after initial load
     discard(sender.tab);
@@ -362,7 +347,7 @@ chrome.runtime.onMessage.addListener((request, sender, resposne) => {
     storage(request.prefs).then(resposne);
     return true;
   }
-  /* TO-DO: remove the following methods when autoDiscardable is supported in FF */
+  /* Firefox fallback until autoDiscardable is fully supported */
   else if (method === 'tabs.update') {
     chrome.tabs.update(request.tabId, request.updateProperties, resposne);
     return true;

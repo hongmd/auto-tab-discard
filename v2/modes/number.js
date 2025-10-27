@@ -304,9 +304,11 @@ number.check = async (filterTabsFrom, ops = {}) => {
   }
   // ready to discard
   log('number check', 'possible tabs that could get discarded', arr.length);
+  const excess = Math.max(0, tbs.length - prefs.number);
+  const limit = Math.min(excess, arr.length, prefs['max.single.discard']);
   const tbds = arr
     .sort((a, b) => map.get(a).time - map.get(b).time)
-    .slice(0, Math.min(arr.length - prefs.number, prefs['max.single.discard']));
+    .slice(0, limit);
 
   log('number check', 'discarding', tbds.length);
   for (const tb of tbds) {

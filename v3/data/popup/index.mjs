@@ -38,7 +38,9 @@ const whitelist = {
   session: document.querySelector('[data-cmd=whitelist-session]')
 };
 
-const init = () => {
+const queryTabs = options => new Promise(resolve => chrome.tabs.query(options, resolve));
+
+const init = async () => {
   chrome.alarms.get('tmp.disable', a => {
     chrome.runtime.sendMessage({
       'method': 'storage',
@@ -49,86 +51,89 @@ const init = () => {
       document.getElementById('tmp_disable').value = a ? prefs['tmp_disable'] : 0;
     });
   });
-
-  chrome.tabs.query({
+  const [activeTab] = await queryTabs({
     active: true,
     currentWindow: true
-  }, tabs => {
-    if (tabs.length) {
-      tab = tabs[0];
+  });
 
-      try {
-        const {protocol = '', hostname} = new URL(tab.url);
+  if (activeTab) {
+    tab = activeTab;
 
-        if (protocol.startsWith('http') || protocol.startsWith('ftp')) {
-          chrome.runtime.sendMessage({
-            'method': 'storage',
-            'managed': {
-              'whitelist': []
-            },
-            'session': {
-              'whitelist.session': []
-            }
-          }, prefs => {
-            whitelist.session.checked = match(prefs['whitelist.session'], hostname, tab.url) ? true : false;
-            whitelist.always.checked = match(prefs['whitelist'], hostname, tab.url) ? true : false;
-          });
-          if (tab.autoDiscardable === false) {
-            allowed.checked = true;
+    try {
+      const {protocol = '', hostname} = new URL(tab.url);
+
+      if (protocol.startsWith('http') || protocol.startsWith('ftp')) {
+        chrome.runtime.sendMessage({
+          'method': 'storage',
+          'managed': {
+            'whitelist': []
+          },
+          'session': {
+            'whitelist.session': []
           }
-          chrome.scripting.executeScript({
-            target: {
-              tabId: tab.id
-            },
-            func: () => document.title
-          }).catch(e => {
-            console.warn('Cannot access to this tab', e);
-            allowed.parentElement.dataset.disabled = true;
-          });
+        }, prefs => {
+          whitelist.session.checked = match(prefs['whitelist.session'], hostname, tab.url) ? true : false;
+          whitelist.always.checked = match(prefs['whitelist'], hostname, tab.url) ? true : false;
+        });
+        if (tab.autoDiscardable === false) {
+          allowed.checked = true;
         }
-        else {
-          throw Error('no HTTP');
-        }
+        chrome.scripting.executeScript({
+          target: {
+            tabId: tab.id
+          },
+          func: () => document.title
+        }).catch(e => {
+          console.warn('Cannot access to this tab', e);
+          allowed.parentElement.dataset.disabled = true;
+        });
       }
-      catch (e) {
-        // on navigation
-        whitelist.session.closest('.mlt').dataset.disabled = true;
-        allowed.parentElement.dataset.disabled = true;
+      else {
+        throw Error('no HTTP');
       }
     }
-  });
+    catch (e) {
+      whitelist.session.closest('.mlt').dataset.disabled = true;
+      allowed.parentElement.dataset.disabled = true;
+      tab = undefined;
+    }
+  }
+  else {
+    tab = undefined;
+  }
+
+  const [currentDiscarded, otherWindowDiscarded, allDiscarded] = await Promise.all([
+    queryTabs({
+      currentWindow: true,
+      discarded: true
+    }),
+    queryTabs({
+      currentWindow: false,
+      discarded: true
+    }),
+    queryTabs({
+      discarded: true
+    })
+  ]);
+
   /* disable unavailable releasing options */
-  chrome.tabs.query({
-    currentWindow: true,
-    discarded: true
-  }, tabs => {
-    if (tabs.length === 0) {
-      document.querySelector('[data-cmd=release-window]').classList.add('disabled');
-    }
-    if (tabs.some(t => t.index > tab.index) === false) {
-      document.querySelector('[data-cmd=release-rights]').classList.add('disabled');
-    }
-    if (tabs.some(t => t.index < tab.index) === false) {
-      document.querySelector('[data-cmd=release-lefts]').classList.add('disabled');
-    }
-  });
-  chrome.tabs.query({
-    currentWindow: false,
-    discarded: true
-  }, tabs => {
-    if (tabs.length === 0) {
-      document.querySelector('[data-cmd=release-other-windows]').classList.add('disabled');
-    }
-  });
-  chrome.tabs.query({
-    discarded: true
-  }, tabs => {
-    if (tabs.length === 0) {
-      document.querySelector('[data-cmd=release-tabs]').classList.add('disabled');
-    }
-  });
+  if (currentDiscarded.length === 0) {
+    document.querySelector('[data-cmd=release-window]').classList.add('disabled');
+  }
+  if (!tab || currentDiscarded.some(t => t.index > tab.index) === false) {
+    document.querySelector('[data-cmd=release-rights]').classList.add('disabled');
+  }
+  if (!tab || currentDiscarded.some(t => t.index < tab.index) === false) {
+    document.querySelector('[data-cmd=release-lefts]').classList.add('disabled');
+  }
+  if (otherWindowDiscarded.length === 0) {
+    document.querySelector('[data-cmd=release-other-windows]').classList.add('disabled');
+  }
+  if (allDiscarded.length === 0) {
+    document.querySelector('[data-cmd=release-tabs]').classList.add('disabled');
+  }
 };
-init();
+init().catch(console.error);
 
 document.addEventListener('click', e => {
   const {target} = e;
