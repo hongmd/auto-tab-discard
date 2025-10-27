@@ -1,30 +1,54 @@
 import {match} from '../../worker/core/utils.mjs';
 
+// Cache DOM elements
+const domElements = {
+  localeElements: null,
+  header: null,
+  allowed: null,
+  tmpDisable: null,
+  releaseWindow: null,
+  releaseRights: null,
+  releaseLefts: null,
+  releaseOtherWindows: null,
+  releaseTabs: null
+};
+
+const cacheElements = () => {
+  domElements.localeElements = [...document.querySelectorAll('[data-i18n]')];
+  domElements.header = document.querySelector('header');
+  domElements.allowed = document.getElementById('allowed');
+  domElements.tmpDisable = document.getElementById('tmp_disable');
+  domElements.releaseWindow = document.querySelector('[data-cmd=release-window]');
+  domElements.releaseRights = document.querySelector('[data-cmd=release-rights]');
+  domElements.releaseLefts = document.querySelector('[data-cmd=release-lefts]');
+  domElements.releaseOtherWindows = document.querySelector('[data-cmd=release-other-windows]');
+  domElements.releaseTabs = document.querySelector('[data-cmd=release-tabs]');
+};
+
 // localization
-[...document.querySelectorAll('[data-i18n]')].forEach(e => {
+cacheElements();
+domElements.localeElements.forEach(e => {
   e[e.dataset.i18nValue || 'textContent'] = chrome.i18n.getMessage(e.dataset.i18n);
   if (e.dataset.i18nTitle) {
     e.title = chrome.i18n.getMessage(e.dataset.i18nTitle);
   }
 });
 {
-  const header = document.querySelector('header');
-  if (header) {
-    header.textContent = chrome.runtime.getManifest().name;
+  if (domElements.header) {
+    domElements.header.textContent = chrome.runtime.getManifest().name;
   }
 }
 
 let tab;
 
 // works on all highlighted tabs in the current window
-const allowed = document.getElementById('allowed');
-allowed.addEventListener('change', () => chrome.tabs.query({
+domElements.allowed.addEventListener('change', () => chrome.tabs.query({
   currentWindow: true,
   highlighted: true
 }, async tabs => {
   for (const tab of tabs) {
     await new Promise(resolve => chrome.tabs.update(tab.id, {
-      autoDiscardable: allowed.checked === false
+      autoDiscardable: domElements.allowed.checked === false
     }, resolve));
   }
   chrome.runtime.sendMessage({
@@ -38,19 +62,29 @@ const whitelist = {
   session: document.querySelector('[data-cmd=whitelist-session]')
 };
 
+// Store whitelist references in cache for faster access
+domElements.whitelistAlways = whitelist.always;
+domElements.whitelistSession = whitelist.session;
+
 const queryTabs = options => new Promise(resolve => chrome.tabs.query(options, resolve));
 
+const sendMessage = (message) => new Promise(resolve => chrome.runtime.sendMessage(message, resolve));
+
+const getAlarm = () => new Promise(resolve => chrome.alarms.get('tmp.disable', resolve));
+
 const init = async () => {
-  chrome.alarms.get('tmp.disable', a => {
-    chrome.runtime.sendMessage({
+  // Get tmp.disable alarm and storage in parallel
+  const [alarm, prefs] = await Promise.all([
+    getAlarm(),
+    sendMessage({
       'method': 'storage',
       'managed': {
         'tmp_disable': 0
       }
-    }, prefs => {
-      document.getElementById('tmp_disable').value = a ? prefs['tmp_disable'] : 0;
-    });
-  });
+    })
+  ]);
+  domElements.tmpDisable.value = alarm ? prefs['tmp_disable'] : 0;
+
   const [activeTab] = await queryTabs({
     active: true,
     currentWindow: true
@@ -63,7 +97,7 @@ const init = async () => {
       const {protocol = '', hostname} = new URL(tab.url);
 
       if (protocol.startsWith('http') || protocol.startsWith('ftp')) {
-        chrome.runtime.sendMessage({
+        const whitelistPrefs = await sendMessage({
           'method': 'storage',
           'managed': {
             'whitelist': []
@@ -71,12 +105,12 @@ const init = async () => {
           'session': {
             'whitelist.session': []
           }
-        }, prefs => {
-          whitelist.session.checked = match(prefs['whitelist.session'], hostname, tab.url) ? true : false;
-          whitelist.always.checked = match(prefs['whitelist'], hostname, tab.url) ? true : false;
         });
+        whitelist.session.checked = match(whitelistPrefs['whitelist.session'], hostname, tab.url) ? true : false;
+        whitelist.always.checked = match(whitelistPrefs['whitelist'], hostname, tab.url) ? true : false;
+
         if (tab.autoDiscardable === false) {
-          allowed.checked = true;
+          domElements.allowed.checked = true;
         }
         chrome.scripting.executeScript({
           target: {
@@ -85,7 +119,7 @@ const init = async () => {
           func: () => document.title
         }).catch(e => {
           console.warn('Cannot access to this tab', e);
-          allowed.parentElement.dataset.disabled = true;
+          domElements.allowed.parentElement.dataset.disabled = true;
         });
       }
       else {
@@ -118,19 +152,19 @@ const init = async () => {
 
   /* disable unavailable releasing options */
   if (currentDiscarded.length === 0) {
-    document.querySelector('[data-cmd=release-window]').classList.add('disabled');
+    domElements.releaseWindow.classList.add('disabled');
   }
   if (!tab || currentDiscarded.some(t => t.index > tab.index) === false) {
-    document.querySelector('[data-cmd=release-rights]').classList.add('disabled');
+    domElements.releaseRights.classList.add('disabled');
   }
   if (!tab || currentDiscarded.some(t => t.index < tab.index) === false) {
-    document.querySelector('[data-cmd=release-lefts]').classList.add('disabled');
+    domElements.releaseLefts.classList.add('disabled');
   }
   if (otherWindowDiscarded.length === 0) {
-    document.querySelector('[data-cmd=release-other-windows]').classList.add('disabled');
+    domElements.releaseOtherWindows.classList.add('disabled');
   }
   if (allDiscarded.length === 0) {
-    document.querySelector('[data-cmd=release-tabs]').classList.add('disabled');
+    domElements.releaseTabs.classList.add('disabled');
   }
 };
 init().catch(console.error);
@@ -164,7 +198,7 @@ document.addEventListener('click', e => {
   }
 });
 
-document.getElementById('tmp_disable').addEventListener('change', e => {
+domElements.tmpDisable.addEventListener('change', e => {
   chrome.storage.local.set({
     'tmp_disable': Number(e.target.value)
   });

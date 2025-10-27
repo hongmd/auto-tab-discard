@@ -13,7 +13,16 @@ const number = {
 };
 const pluginFilters = {}; // this object adds custom filters to the number-based discarding
 
+// Cache for compiled rules to avoid recompiling on every check
+const rulesCache = new Map();
+
 const compileRules = list => {
+  // Create a cache key from the list
+  const cacheKey = JSON.stringify(list || []);
+  if (rulesCache.has(cacheKey)) {
+    return rulesCache.get(cacheKey);
+  }
+
   const hosts = new Set();
   const regexes = [];
   for (const rawRule of list || []) {
@@ -32,7 +41,9 @@ const compileRules = list => {
       hosts.add(rule);
     }
   }
-  return {hosts, regexes};
+  const compiled = {hosts, regexes};
+  rulesCache.set(cacheKey, compiled);
+  return compiled;
 };
 
 const matchesRule = (href, hostname, compiled) => {
@@ -371,6 +382,10 @@ chrome.alarms.onAlarm.addListener(alarm => {
       if (ps[key]) {
         updateCached(key);
         updated = true;
+        // Clear rules cache when whitelist changes
+        if (['whitelist', 'whitelist.session', 'whitelist-url'].includes(key)) {
+          rulesCache.clear();
+        }
       }
     }
   });

@@ -4,6 +4,13 @@
 - Prevent browser-action handler from crashing in MV3 by falling back to stored preferences when `localStorage` is unavailable (`v3/worker/menu.mjs`).
 - Stabilize popup initialization by awaiting active-tab lookup before accessing tab index, avoiding race conditions in the popup UI (`v3/data/popup/index.mjs`).
 
+## 0.6.4 – 2025-10-27 (MV2)
+- **Performance**: Implement regex pattern caching to eliminate recompilation overhead on every check cycle, reducing CPU usage with large whitelist rules (`v2/modes/number.js`).
+- **Performance**: Cache DOM elements and Promise handlers in popup initialization to reduce querySelector() calls and callback nesting, improving popup responsiveness (`v3/data/popup/index.mjs`).
+- **Code Quality**: Convert nested Promise chains to async/await in popup initialization for better error handling and readability (`v3/data/popup/index.mjs`).
+- Automatically clear cached regex patterns when whitelist settings change (`v2/modes/number.js`).
+- Bump MV2 manifest version to `0.6.4` (`v2/manifest.json`).
+
 ## 0.6.3 – 2025-10-27 (MV2)
 - Fix number-based discarding so the extension drops the true excess tab count instead of stopping when filtered candidates are below the hard limit (`v2/modes/number.js`).
 - Safely escape the title prefix injected during discards to keep custom strings from breaking the discard flow (`v2/background.js`).
