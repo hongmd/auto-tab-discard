@@ -1,5 +1,5 @@
-import {prefs, storage} from './prefs.mjs';
-import {log} from './utils.mjs';
+import { prefs, storage } from './prefs.mjs';
+import { log } from './utils.mjs';
 
 // this list keeps ids of the tabs that are in progress of being discarded
 const inprogress = new Set();
@@ -147,7 +147,7 @@ const discard = tab => {
           else {
             next('one');
           }
-        }).catch(e =>next(e.message));
+        }).catch(e => next(e.message));
       }
       else {
         next('two');
@@ -166,4 +166,4 @@ discard.perform = tab => {
   }
 };
 
-export {discard, inprogress};
+export { discard, inprogress };

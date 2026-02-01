@@ -257,6 +257,9 @@
   "popup_whitelist_desc": {
     "message": "Keep Tabs for This Site"
   },
+  "popup_whitelist_desc_title": {
+    "message": "Add this site to the exception list. Use Shift + Click on checkboxes below to add the exact URL instead of just the hostname."
+  },
   "popup_whitelist_always": {
     "message": "Always"
   },
@@ -265,6 +268,9 @@
   },
   "popup_whitelist_session": {
     "message": "Session"
+  },
+  "popup_whitelist_session_title": {
+    "message": "Click to add the hostname to the session exception list (cleared on browser restart). Shift + Click to add the exact URL."
   },
   "popup_allowed": {
     "message": "Keep Selected Tabs for This Session"
