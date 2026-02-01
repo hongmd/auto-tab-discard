@@ -93,7 +93,7 @@
     "message": "Exceptions"
   },
   "options_whitelist": {
-    "message": "Tabs with the following hostnames or regular expression rules are not being discarded. It is recommended to use the popup interface to modify this list. Use the \"Shift\" key while appending a rule from the popup interface to generate a regular expression rule."
+    "message": "Prevent auto-discarding for the following hostnames or URLs:"
   },
   "options_left_click": {
     "message": "Toolbar left-click action"
@@ -214,6 +214,9 @@
   },
   "options_managed_2": {
     "message": "Read more here."
+  },
+  "options_reload_on_restore": {
+    "message": "Reload tab when restored"
   },
   "popup_discard_tab": {
     "message": "Discard Tab"

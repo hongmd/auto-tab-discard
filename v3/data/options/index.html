@@ -1,41 +1,62 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title data-i18n="options_title">Options Page :: Auto Tab Discard (fork)</title>
-    <link rel="stylesheet" href="index.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-  </head>
 
-  <body>
-    <p>
-      <div class="wnt" data-i18n="options_save_notice"></div>
-    </p>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <title data-i18n="options_title">Options Page :: Auto Tab Discard (fork)</title>
+  <link rel="stylesheet" href="index.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
 
+<body>
+  <!-- Unsaved Changes Bar -->
+  <div id="changes-bar" class="changes-bar hidden">
+    <span>You have unsaved changes</span>
+    <div class="changes-actions">
+      <button id="btn-default" class="btn-secondary" disabled>Default</button>
+      <button id="btn-cancel" class="btn-secondary">Cancel</button>
+      <button id="btn-save" class="btn-primary">Save</button>
+    </div>
+  </div>
+
+  <p>
+  <div class="wnt" data-i18n="options_save_notice"></div>
+  </p>
+
+  <!-- Tab Navigation -->
+  <div class="tabs">
+    <button class="tab active" data-tab="general" data-i18n="options_discarding_options">Discarding Options</button>
+    <button class="tab" data-tab="conditions" data-i18n="options_discarding_conditions">Conditions</button>
+    <button class="tab" data-tab="exceptions" data-i18n="options_exceptions">Exceptions</button>
+    <button class="tab" data-tab="plugins" data-i18n="options_plugins">Plugins</button>
+    <button class="tab" data-tab="advanced" data-i18n="options_misc">Advanced</button>
+  </div>
+
+  <!-- Tab: General (Discarding Options) -->
+  <div class="tab-content active" id="tab-general">
     <table width=100%>
       <colgroup>
         <col width="24">
         <col>
         <col width="80">
       </colgroup>
-      <thead>
-        <tr>
-          <th colspan="3" data-i18n="options_discarding_options"></th>
-        </tr>
-      </thead>
       <tbody>
         <tr>
-          <td colspan="3"><span data-i18n="options_period01_a"></span> <input type="number" id="period" min="0"> <span data-i18n="options_period02"></span> <input type="number" id="number" min="0"></td>
+          <td colspan="3"><span data-i18n="options_period01_a"></span> <input type="number" id="period" min="0"> <span
+              data-i18n="options_period02"></span> <input type="number" id="number" min="0"></td>
         </tr>
         <tr>
-          <td colspan="3"><span data-i18n="options_period04"></span> <input type="number" id="max.single.discard" min="0"></td>
+          <td colspan="3"><span data-i18n="options_period04"></span> <input type="number" id="max.single.discard"
+              min="0"></td>
         </tr>
         <tr>
           <td><input type="checkbox" id="url-based"></td>
-          <td colspan="2"><label for="url-based"><span data-i18n="options_url_based"></span> <a target="_blank" data-i18n="options_read_more" data-href="faq13"></a></label></td>
+          <td colspan="2"><label for="url-based"><span data-i18n="options_url_based"></span> <a target="_blank"
+                data-i18n="options_read_more" data-href="faq13"></a></label></td>
         </tr>
         <tr>
-          <td colspan="3"><textarea rows="3" id="whitelist-url" data-i18n="options_list" data-i18n-value="placeholder"></textarea></td>
+          <td colspan="3"><textarea rows="3" id="whitelist-url" data-i18n="options_list"
+              data-i18n-value="placeholder"></textarea></td>
         </tr>
         <tr>
           <td><input type="checkbox" id="tab.context"></td>
@@ -72,8 +93,13 @@
         </tr>
         <tr id="memory">
           <td><input type="checkbox" id="memory-enabled"></td>
-          <td><label for="memory-enabled"><span data-i18n="options_memory"></span> <a target="_blank" data-i18n="options_read_more" data-href="faq14"></a></label></td>
+          <td><label for="memory-enabled"><span data-i18n="options_memory"></span> <a target="_blank"
+                data-i18n="options_read_more" data-href="faq14"></a></label></td>
           <td><input type="number" id="memory-value" min="10"></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox" id="reload-on-restore"></td>
+          <td colspan="2"><label for="reload-on-restore" data-i18n="options_reload_on_restore"></label></td>
         </tr>
         <tr>
           <td></td>
@@ -91,11 +117,17 @@
           <td><input type="number" id="idle-timeout" min="1"></td>
         </tr>
       </tbody>
-      <thead>
-        <tr>
-          <th colspan="3" data-i18n="options_discarding_conditions"></th>
-        </tr>
-      </thead>
+    </table>
+  </div>
+
+  <!-- Tab: Conditions -->
+  <div class="tab-content" id="tab-conditions">
+    <table width=100%>
+      <colgroup>
+        <col width="24">
+        <col>
+        <col width="80">
+      </colgroup>
       <tbody>
         <tr>
           <td><input type="checkbox" id="audio"></td>
@@ -130,67 +162,31 @@
           <td colspan="2"><label for="idle" data-i18n="options_idle"></label></td>
         </tr>
       </tbody>
-      <thead>
-        <tr>
-          <th colspan="3" data-i18n="options_exceptions"></th>
-        </tr>
-      </thead>
+    </table>
+  </div>
+
+  <!-- Tab: Exceptions -->
+  <div class="tab-content" id="tab-exceptions">
+    <table width=100%>
       <tbody>
         <tr>
           <td colspan="3">
             <span style="display: block; padding-bottom: 10px;"><span data-i18n="options_whitelist"></span></span>
-            <textarea rows="3" id="whitelist" data-i18n="options_list" data-i18n-value="placeholder"></textarea>
+            <textarea rows="5" id="whitelist" data-i18n="options_list" data-i18n-value="placeholder"></textarea>
           </td>
         </tr>
       </tbody>
-      <thead>
-        <tr>
-          <th colspan="3" data-i18n="options_left_click"></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><input type="radio" name="left-click" id="click.popup"></td>
-          <td colspan="2"><label for="click.popup" data-i18n="options_click_popup"></label></td>
-        </tr>
-        <tr>
-          <td><input type="radio" name="left-click" id="click.discard-tab"></td>
-          <td colspan="2"><label for="click.discard-tab" data-i18n="options_click_discard_tab"></label></td>
-        </tr>
-        <tr>
-          <td><input type="radio" name="left-click" id="click.discard-tabs"></td>
-          <td colspan="2"><label for="click.discard-tabs" data-i18n="options_click_discard_tabs"></label></td>
-        </tr>
-        <tr>
-          <td><input type="radio" name="left-click" id="click.release-tabs"></td>
-          <td colspan="2"><label for="click.release-tabs" data-i18n="options_click_release_tabs"></label></td>
-        </tr>
-        <tr>
-          <td><input type="radio" name="left-click" id="click.discard-window"></td>
-          <td colspan="2"><label for="click.discard-window" data-i18n="options_click_discard_window"></label></td>
-        </tr>
-        <tr>
-          <td><input type="radio" name="left-click" id="click.release-window"></td>
-          <td colspan="2"><label for="click.release-window" data-i18n="options_click_release_window"></label></td>
-        </tr>
-        <tr>
-          <td><input type="radio" name="left-click" id="click.discard-other-windows"></td>
-          <td colspan="2"><label for="click.discard-other-windows" data-i18n="options_click_discard_other_windows"></label></td>
-        </tr>
-        <tr>
-          <td><input type="radio" name="left-click" id="click.release-other-windows"></td>
-          <td colspan="2"><label for="click.release-other-windows" data-i18n="options_click_release_other_windows"></label></td>
-        </tr>
-        <tr>
-          <td><input type="radio" name="left-click" id="click.toggle-allowed"></td>
-          <td colspan="2"><label for="click.toggle-allowed" data-i18n="options_click_toggle_allowed"></label></td>
-        </tr>
-      </tbody>
-      <thead>
-        <tr>
-          <th colspan="3" data-i18n="options_plugins"></th>
-        </tr>
-      </thead>
+    </table>
+  </div>
+
+  <!-- Tab: Plugins -->
+  <div class="tab-content" id="tab-plugins">
+    <table width=100%>
+      <colgroup>
+        <col width="24">
+        <col>
+        <col width="80">
+      </colgroup>
       <tbody>
         <tr class="disabled">
           <td><input type="checkbox" id="./plugins/dummy/core.js"></td>
@@ -227,28 +223,87 @@
         <tr>
           <td><input type="checkbox" id="./plugins/trash/core.js"></td>
           <td colspan="2">
-              <label for="./plugins/trash/core.js" data-i18n="options_plugin_trash01"></label>
-              <input type="number" id="trash.period" min="0">
-              <label for="./plugins/trash/core.js" data-i18n="options_plugin_trash02"></label>
+            <label for="./plugins/trash/core.js" data-i18n="options_plugin_trash01"></label>
+            <input type="number" id="trash.period" min="0">
+            <label for="./plugins/trash/core.js" data-i18n="options_plugin_trash02"></label>
           </td>
         </tr>
         <tr>
-            <td></td>
-            <td colspan="2">
-                <span style="display: block; padding-bottom: 10px;"><span data-i18n="options_plugin_trash_whitelist"></span> <a target="_blank" data-i18n="options_read_more" data-href="faq15"></a></span>
-                <textarea rows="3" id="trash.whitelist-url" data-i18n="options_list_trash" data-i18n-value="placeholder"></textarea>
-            </td>
+          <td></td>
+          <td colspan="2">
+            <span style="display: block; padding-bottom: 10px;"><span data-i18n="options_plugin_trash_whitelist"></span>
+              <a target="_blank" data-i18n="options_read_more" data-href="faq15"></a></span>
+            <textarea rows="3" id="trash.whitelist-url" data-i18n="options_list_trash"
+              data-i18n-value="placeholder"></textarea>
+          </td>
         </tr>
         <tr>
-            <td><input type="checkbox" id="trash.unloaded"></td>
-            <td><label for="trash.unloaded" data-i18n="options_plugin_trash_unloaded"></label></td>
+          <td><input type="checkbox" id="trash.unloaded"></td>
+          <td><label for="trash.unloaded" data-i18n="options_plugin_trash_unloaded"></label></td>
         </tr>
         <tr>
           <td style="vertical-align: top;"><input type="checkbox" id="./plugins/force/core.js"></td>
           <td colspan="2">
-            <label style="display: block; padding-bottom: 10px;" for="./plugins/force/core.js" data-i18n="options_plugin_force"></label>
+            <label style="display: block; padding-bottom: 10px;" for="./plugins/force/core.js"
+              data-i18n="options_plugin_force"></label>
             <textarea rows="3" id="force.hostnames" data-i18n="options_list" data-i18n-value="placeholder"></textarea>
           </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Tab: Advanced -->
+  <div class="tab-content" id="tab-advanced">
+    <table width=100%>
+      <colgroup>
+        <col width="24">
+        <col>
+        <col width="80">
+      </colgroup>
+      <thead>
+        <tr>
+          <th colspan="3" data-i18n="options_left_click"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><input type="radio" name="left-click" id="click.popup"></td>
+          <td colspan="2"><label for="click.popup" data-i18n="options_click_popup"></label></td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="left-click" id="click.discard-tab"></td>
+          <td colspan="2"><label for="click.discard-tab" data-i18n="options_click_discard_tab"></label></td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="left-click" id="click.discard-tabs"></td>
+          <td colspan="2"><label for="click.discard-tabs" data-i18n="options_click_discard_tabs"></label></td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="left-click" id="click.release-tabs"></td>
+          <td colspan="2"><label for="click.release-tabs" data-i18n="options_click_release_tabs"></label></td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="left-click" id="click.discard-window"></td>
+          <td colspan="2"><label for="click.discard-window" data-i18n="options_click_discard_window"></label></td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="left-click" id="click.release-window"></td>
+          <td colspan="2"><label for="click.release-window" data-i18n="options_click_release_window"></label></td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="left-click" id="click.discard-other-windows"></td>
+          <td colspan="2"><label for="click.discard-other-windows"
+              data-i18n="options_click_discard_other_windows"></label></td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="left-click" id="click.release-other-windows"></td>
+          <td colspan="2"><label for="click.release-other-windows"
+              data-i18n="options_click_release_other_windows"></label></td>
+        </tr>
+        <tr>
+          <td><input type="radio" name="left-click" id="click.toggle-allowed"></td>
+          <td colspan="2"><label for="click.toggle-allowed" data-i18n="options_click_toggle_allowed"></label></td>
         </tr>
       </tbody>
       <thead>
@@ -272,34 +327,38 @@
       </tbody>
     </table>
 
-    <div id="rate">
-      <label data-i18n="options_rate_desc"></label>
-      <input type="button" value="Rate Me" data-i18n="options_rate_btn" data-i18n-value="value">
+    <div class="managed-note">
+      <span data-i18n="options_managed_1"></span>
+      <a data-i18n="options_managed_2" target="_blank" data-href="faq10"></a>
     </div>
+  </div>
 
-    <p>
-      <div class="wnt">
-        <span data-i18n="options_managed_1"></span>
-        <a data-i18n="options_managed_2" target="_blank" data-href="faq10"></a>
-      </div>
-      <table width=100%>
-        <colgroup>
-          <col width="1"/>
-          <col width="1"/>
-        </colgroup>
-        <tr>
-          <td><input type="button" id="import" data-i18n="options_import" data-i18n-value="value"></td>
-          <td><input type="button" id="reset" data-i18n="options_reset" data-i18n-value="value"></td>
-          <td><input type="button" id="save" data-i18n="options_save" data-i18n-value="value"></td>
-        </tr>
-        <tr>
-          <td><input type="button" id="export" data-i18n="options_export" data-i18n-value="value"></td>
-          <td><input type="button" id="support"  data-i18n="options_support" data-i18n-value="value"></td>
-          <td><span id="info"></span></td>
-        </tr>
-      </table>
-    </p>
+  <!-- Footer Actions -->
+  <div id="rate">
+    <label data-i18n="options_rate_desc"></label>
+    <input type="button" value="Rate Me" data-i18n="options_rate_btn" data-i18n-value="value">
+  </div>
 
-    <script src="index.js"></script>
-  </body>
+  <p></p>
+  <table width=100%>
+    <colgroup>
+      <col width="1" />
+      <col width="1" />
+    </colgroup>
+    <tr>
+      <td><input type="button" id="import" data-i18n="options_import" data-i18n-value="value"></td>
+      <td><input type="button" id="reset" data-i18n="options_reset" data-i18n-value="value"></td>
+      <td><input type="button" id="save" data-i18n="options_save" data-i18n-value="value"></td>
+    </tr>
+    <tr>
+      <td><input type="button" id="export" data-i18n="options_export" data-i18n-value="value"></td>
+      <td><input type="button" id="support" data-i18n="options_support" data-i18n-value="value"></td>
+      <td><span id="info"></span></td>
+    </tr>
+  </table>
+  </p>
+
+  <script src="index.js"></script>
+</body>
+
 </html>

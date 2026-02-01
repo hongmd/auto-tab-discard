@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.0 – 2026-02-01 (MV3)
+- **New Feature**: Added "Reload tab when restored" option (enabled by default).
+- **New Feature**: "Smart Change Detection" in Options page - shows Save/Revert/Default bar only when settings are modified.
+- **UI**: Major redesign of the Options page with a tabbed interface (General, Conditions, Exceptions, Plugins, Advanced).
+- **UI**: Sleek, modern design for both Options page and Popup.
+- **Whitelist**: Added support for wildcard patterns (`*`) in whitelisting (e.g., `*.example.com`).
+- **Control**: Updated Support link to Buy Me a Coffee.
+- **Fix**: Resolved broken FAQ links by fixing `homepage_url` handling.
+
 ## 0.7.2 – 2026-02-01 (MV3)
 - **New Feature**: Added tooltips to the popup interface explaining the "Shift + Click" functionality for whitelist management.
 - **UX**: Improved whitelist description in popup with clearer instructions.

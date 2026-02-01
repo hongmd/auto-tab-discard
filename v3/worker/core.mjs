@@ -54,6 +54,13 @@ chrome.runtime.onMessage.addListener((request, sender, response) => {
   }
 });
 
+// Reload on restore
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.discarded === false && prefs['reload-on-restore']) {
+    chrome.tabs.reload(tabId);
+  }
+});
+
 // left-click action
 const popup = () => chrome.action.setPopup({
   popup: prefs.click === 'click.popup' ? 'data/popup/index.html' : ''

@@ -1,5 +1,81 @@
 'use strict';
 
+// Tab Navigation
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// Changes Tracking
+const changesBar = document.getElementById('changes-bar');
+let savedSnapshot = {};
+
+const showChangesBar = () => {
+  changesBar.classList.remove('hidden');
+  document.body.classList.add('has-changes');
+};
+
+const hideChangesBar = () => {
+  changesBar.classList.add('hidden');
+  document.body.classList.remove('has-changes');
+};
+
+// Get current form values
+const getCurrentValues = () => {
+  const values = {};
+  document.querySelectorAll('input, textarea, select').forEach(el => {
+    if (!el.id || el.id.startsWith('btn-')) return;
+    if (el.type === 'checkbox') {
+      values[el.id] = el.checked;
+    } else if (el.type === 'radio') {
+      if (el.checked) values[el.name] = el.id;
+    } else {
+      values[el.id] = el.value;
+    }
+  });
+  return values;
+};
+
+// Compare current values with saved snapshot
+const checkForChanges = () => {
+  const current = getCurrentValues();
+  let hasDiff = false;
+
+  for (const key of Object.keys(current)) {
+    if (current[key] !== savedSnapshot[key]) {
+      hasDiff = true;
+      break;
+    }
+  }
+
+  if (hasDiff) {
+    showChangesBar();
+  } else {
+    hideChangesBar();
+  }
+};
+
+// Save current state as snapshot
+const saveSnapshot = () => {
+  savedSnapshot = getCurrentValues();
+};
+
+// Listen for changes on all form elements
+document.addEventListener('input', (e) => {
+  if (e.target.matches('input, textarea, select')) {
+    checkForChanges();
+  }
+});
+document.addEventListener('change', (e) => {
+  if (e.target.matches('input[type="checkbox"], input[type="radio"], select')) {
+    checkForChanges();
+  }
+});
+
 const isFirefox = /Firefox/.test(navigator.userAgent);
 const isEdge = /Edg\//.test(navigator.userAgent);
 
@@ -67,6 +143,7 @@ const restore = () => storage({
   'startup-pinned': false,
   'startup-release-pinned': false,
   'force.hostnames': [],
+  'reload-on-restore': true,
   /* plugins */
   './plugins/dummy/core.js': false,
   './plugins/blank/core.js': true,
@@ -120,6 +197,7 @@ const restore = () => storage({
   document.getElementById('startup-unpinned').checked = prefs['startup-unpinned'];
   document.getElementById('startup-pinned').checked = prefs['startup-pinned'];
   document.getElementById('startup-release-pinned').checked = prefs['startup-release-pinned'];
+  document.getElementById('reload-on-restore').checked = prefs['reload-on-restore'];
   if (prefs.mode === 'url-based') {
     document.getElementById('url-based').checked = true;
   }
@@ -134,6 +212,9 @@ const restore = () => storage({
   document.getElementById('./plugins/new/core.js').checked = prefs['./plugins/new/core.js'];
   document.getElementById('./plugins/unloaded/core.js').checked = prefs['./plugins/unloaded/core.js'];
   document.getElementById('./plugins/youtube/core.js').checked = prefs['./plugins/youtube/core.js'];
+  // Save snapshot after restoring for change detection
+  saveSnapshot();
+  checkDefaultButton();
 });
 
 document.getElementById('save').addEventListener('click', () => {
@@ -203,6 +284,7 @@ document.getElementById('save').addEventListener('click', () => {
     'startup-unpinned': document.getElementById('startup-unpinned').checked,
     'startup-pinned': document.getElementById('startup-pinned').checked,
     'startup-release-pinned': document.getElementById('startup-release-pinned').checked,
+    'reload-on-restore': document.getElementById('reload-on-restore').checked,
     /* plugins*/
     './plugins/dummy/core.js': document.getElementById('./plugins/dummy/core.js').checked,
     './plugins/blank/core.js': document.getElementById('./plugins/blank/core.js').checked,
@@ -221,6 +303,7 @@ document.getElementById('save').addEventListener('click', () => {
     './plugins/youtube/core.js': document.getElementById('./plugins/youtube/core.js').checked
   }, () => {
     info.textContent = chrome.i18n.getMessage('options_save_msg');
+    hideChangesBar();
     restore();
     window.setTimeout(() => info.textContent = '', 750);
   });
@@ -228,16 +311,10 @@ document.getElementById('save').addEventListener('click', () => {
 
 {
   const support = document.getElementById('support');
-  const homepage = chrome.runtime.getManifest().homepage_url;
   if (support) {
-    if (homepage) {
-      support.addEventListener('click', () => chrome.tabs.create({
-        url: homepage + '?rd=donate'
-      }));
-    }
-    else {
-      support.closest('td') ? support.closest('td').remove() : support.remove();
-    }
+    support.addEventListener('click', () => chrome.tabs.create({
+      url: 'https://buymeacoffee.com/hongtran'
+    }));
   }
 }
 
@@ -259,6 +336,36 @@ const onChanged = prefs => {
   }
 };
 chrome.storage.onChanged.addListener(onChanged);
+
+// Changes bar buttons
+document.getElementById('btn-save').addEventListener('click', () => {
+  document.getElementById('save').click();
+});
+
+document.getElementById('btn-cancel').addEventListener('click', () => {
+  hideChangesBar();
+  restore();
+});
+
+document.getElementById('btn-default').addEventListener('click', () => {
+  if (confirm('Reset all settings to default values?')) {
+    localStorage.clear();
+    chrome.storage.local.clear(() => {
+      chrome.runtime.reload();
+      window.close();
+    });
+  }
+});
+
+// Enable Default button when settings differ from defaults
+const checkDefaultButton = () => {
+  chrome.storage.local.get(null, prefs => {
+    const hasCustomSettings = Object.keys(prefs).length > 0;
+    document.getElementById('btn-default').disabled = !hasCustomSettings;
+  });
+};
+checkDefaultButton();
+
 // reset
 document.getElementById('reset').addEventListener('click', e => {
   if (e.detail === 1) {
@@ -293,7 +400,7 @@ document.getElementById('export').addEventListener('click', () => {
       'chrome.storage.local': prefs,
       'localStorage': obj
     }, null, '  ');
-    const blob = new Blob([text], {type: 'application/json'});
+    const blob = new Blob([text], { type: 'application/json' });
     const objectURL = URL.createObjectURL(blob);
     Object.assign(document.createElement('a'), {
       href: objectURL,

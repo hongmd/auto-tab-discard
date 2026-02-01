@@ -17,7 +17,8 @@ const prefs = {
   'startup-unpinned': false,
   'startup-pinned': false,
   'startup-release-pinned': false,
-  'startup-discarding-period': 10 // in seconds
+  'startup-discarding-period': 10, // in seconds
+  'reload-on-restore': true
 };
 
 const storage = (prefs, type = 'managed') => new Promise(resolve => {
