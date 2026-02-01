@@ -90,7 +90,14 @@ const discard = tab => {
                           ctx.fillStyle = '#a1a0a1';
                           ctx.arc(img.width * 0.75, img.height * 0.75, img.width * 0.25, 0, 2 * Math.PI, false);
                           ctx.fill();
-                          const href = canvas.toDataURL();
+                          let href;
+                          try {
+                            href = canvas.toDataURL();
+                          }
+                          catch (e) {
+                            response(e.message || 'CORS');
+                            return;
+                          }
                           document.querySelector('head').appendChild(Object.assign(document.createElement('link'), {
                             rel: 'icon',
                             type: 'image/png',

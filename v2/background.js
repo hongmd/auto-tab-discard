@@ -230,7 +230,15 @@ const discard = tab => {
             ctx.fillStyle = '#a1a0a1';
             ctx.arc(img.width * 0.75, img.height * 0.75, img.width * 0.25, 0, 2 * Math.PI, false);
             ctx.fill();
-            const href = canvas.toDataURL('image/png');
+            let href;
+            try {
+              href = canvas.toDataURL('image/png');
+            }
+            catch (e) {
+              log('favicon generation failed', e);
+              next();
+              return;
+            }
             iconCache.set(src, {
               href,
               time: Date.now()
